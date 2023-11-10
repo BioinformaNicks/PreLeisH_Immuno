@@ -20,6 +20,7 @@ suppressMessages(library(hrbrthemes))
 suppressMessages(library(extrafont))
 suppressMessages(library(ggtext))
 suppressMessages(library(Cairo))
+suppressMessages(library(magick))
 
 ##################################################################
 ##                    Setting global variables                   #
@@ -190,11 +191,11 @@ timeline <- dat %>%
   #                              "*<img src='./scripts/resources/relapse_figure_timeline.png'width='32.5' /><br>")) +
   scale_y_discrete(labels = paste0(c("<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
                                      "*<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
-                              "†<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
+                              "+<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
                               "<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
                               "*<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
                               "<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
-                              "†<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
+                              "+<img src='./scripts/resources/cured_figure_timeline.png'width='32.5' />",
                               rep("<img src='./scripts/resources/relapse_figure_timeline.png'width='32.5' />", 4),
                               "*<img src='./scripts/resources/relapse_figure_timeline.png'width='32.5' />",
                               rep("<img src='./scripts/resources/relapse_figure_timeline.png'width='32.5' />",11),
@@ -242,7 +243,7 @@ ggsave(here('Analyses', 'final_output', 'Figure2_PatientTimeline.png'), timeline
 ##        Adding patient flowchart and timeline together         -
 ##----------------------------------------------------------------
 
-patient_flowchart <- image_read_pdf(here("analyses", "final_output", "20221113_PreLeisH_Flowchart.pdf"), density = 300)
+patient_flowchart <- image_read_pdf(here("analyses", "final_output", "20230929_PreLeisH_Flowchart.pdf"), density = 300)
 patient_flowchart <- image_ggplot(patient_flowchart, interpolate = T)
 
 layout <- "

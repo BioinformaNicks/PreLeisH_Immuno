@@ -34,7 +34,7 @@ colorblind_vector <- colorRampPalette(c("#FF4B20", "#FFB433",
 ##                      Loading in the data                     #
 #################################################################
 
-characteristics_data <- suppressMessages(read_csv(here("data", "meta_data", "Patient_Characteristics", "Final_20221202_PrimaryVsChronicCharacteristics.csv"))) #%>% 
+characteristics_data <- suppressMessages(read_csv(here("data", "meta_data", "Patient_Characteristics", "Final_20230823_NonChronicVsChronicCharacteristics.csv"))) #%>% 
   #filter(., !Patient_ID %in% c('395', '470', '524'))
 characteristics_data$Patient_ID <- as.factor(characteristics_data$Patient_ID)
 characteristics_data$Group <- as.factor(characteristics_data$Group)
@@ -56,11 +56,12 @@ characteristics_data$CD4_Post_M6 <- as.numeric(characteristics_data$CD4_Post_M6)
 characteristics_data$CD4_Post_M12 <- as.numeric(characteristics_data$CD4_Post_M12)
 characteristics_data$Microscope_Confirmed <- as.factor(characteristics_data$Microscope_Confirmed)
 characteristics_data$ART_Baseline <- as.factor(characteristics_data$ART_Baseline)
+characteristics_data$ART_Regimen <- as.factor(characteristics_data$ART_Regimen)
 characteristics_data$VL_Episodes_Baseline <- as.numeric(characteristics_data$VL_Episodes_Baseline)
 characteristics_data$Concomitant_Disease <- as.factor(characteristics_data$Concomitant_Disease)
 
-#Create VL-HIV group consisting of Primary + Chronic
-characteristics_data <- characteristics_data %>% mutate(Aggregated_Group = ifelse(characteristics_data$Group %in% c('Chronic_VL_HIV', 'Primary_VL_HIV'), 'Symptomatic_VL_HIV', as.character(characteristics_data$Group))) %>%
+#Create VL-HIV group consisting of Non-Chronic + Chronic
+characteristics_data <- characteristics_data %>% mutate(Aggregated_Group = ifelse(characteristics_data$Group %in% c('Chronic_VLHIV', 'NonChronic_VLHIV'), 'Symptomatic_VL_HIV', as.character(characteristics_data$Group))) %>%
   relocate(Aggregated_Group, .after = Group)
 characteristics_data$Aggregated_Group <- as.factor(characteristics_data$Aggregated_Group)
 
@@ -74,10 +75,27 @@ characteristics_data <- characteristics_data %>% mutate(Platelet_Count_d0 = case
 characteristics_data <- characteristics_data %>% mutate(Hemoglobin_Count_d0 = case_when(Group %in% c("HIV", "Asymptomatic_HIV") ~ Hemoglobin_Count_Baseline,
                                                                                         TRUE ~ Hemoglobin_Count_d0))
 
+characteristics_data <- characteristics_data %>% mutate(Viral_Load_M0 = case_when(Viral_Load_M0 == 'Undetectable' ~ '0',
+                                                                                  Viral_Load_M0 != 'Undetectable' ~ Viral_Load_M0)) %>%
+  mutate(Viral_Load_M0 = as.numeric(Viral_Load_M0)) %>%
+  mutate(Viral_Load_M0 = case_when(Viral_Load_M0 == 0 ~ 'Undetectable',
+                                   Viral_Load_M0 > 20 & Viral_Load_M0 <= 10000 ~ '20-10,000 copies/mL',
+                                   Viral_Load_M0 > 10000 ~ '>10,000 copies/mL',
+                                   is.na(Viral_Load_M0) ~ 'Missing'))
+
+
 #Create primary vs chronic dataframe for primary vs chronic testing
 
-primary_v_chronic_data <- characteristics_data %>% filter(Group %in% c('Primary_VL_HIV', 'Chronic_VL_HIV'))
+primary_v_chronic_data <- characteristics_data %>% filter(Group %in% c('NonChronic_VLHIV', 'Chronic_VLHIV'))
 primary_v_chronic_data$Group <- forcats::fct_drop(primary_v_chronic_data$Group)
+
+primary_v_chronic_data <- primary_v_chronic_data %>% mutate(Viral_Load_D0 = case_when(Viral_Load_D0 == 'Undetectable' ~ '0',
+                                                                                  Viral_Load_D0 != 'Undetectable' ~ Viral_Load_D0)) %>%
+  mutate(Viral_Load_D0 = as.numeric(Viral_Load_D0)) %>%
+  mutate(Viral_Load_D0 = case_when(Viral_Load_D0 == 0 ~ 'Undetectable',
+                                   Viral_Load_D0 > 20 & Viral_Load_D0 <= 10000 ~ '20-10,000 copies/mL',
+                                   Viral_Load_D0 > 10000 ~ '>10,000 copies/mL',
+                                   is.na(Viral_Load_D0) ~ 'Missing'))
 
 
 ##################################################################
@@ -198,6 +216,7 @@ Total_Microscope_Confirmed <- table(characteristics_data$Microscope_Confirmed)
 Total_Parasite_Grading <- table(characteristics_data$Parasite_Grading)
 Total_VL_Treatment <- table(characteristics_data$Treatment_Regimen)
 Total_ART <- table(characteristics_data$ART_Baseline)
+Total_Concomitant_Disease_Present <- table(characteristics_data$Concomitant_Disease_Present)
 Total_Concomitant_Disease <- table(characteristics_data$Concomitant_Disease)
 
 Total_RK39RDT <- table(characteristics_data$RK39RDT_Pos)
@@ -255,7 +274,7 @@ All_groups_ART <- sapply(all_groups, function(x) {
 }, simplify = FALSE, USE.NAMES = TRUE)
 
 All_groups_Concomitant_Diseases <- sapply(all_groups, function(x) {
-  num_Concomitant_Disease <- characteristics_data %>% filter(Aggregated_Group == x) %>% filter(Concomitant_Disease == 'Yes') %>% nrow()
+  num_Concomitant_Disease <- characteristics_data %>% filter(Aggregated_Group == x) %>% filter(Concomitant_Disease_Present == 'Yes') %>% nrow()
   total_patients <- characteristics_data %>% filter(Aggregated_Group == x) %>% nrow()
   paste0(num_Concomitant_Disease, ' (', round((num_Concomitant_Disease / total_patients) * 100, 1), ')')
 }, simplify = FALSE, USE.NAMES = TRUE)
@@ -362,7 +381,7 @@ All_groups_wilcox_Months_Prev_VL <- filter(characteristics_data, Aggregated_Grou
 
 All_groups_fisher_ART <- fisher.test(table(characteristics_data$ART_Baseline, characteristics_data$Aggregated_Group))['p.value'] %>% unlist() %>% unname()
 
-All_groups_fisher_Concomitant_Diseases <- fisher.test(table(characteristics_data$Concomitant_Disease, characteristics_data$Aggregated_Group))['p.value'] %>% unlist() %>% unname()
+All_groups_fisher_Concomitant_Diseases_Present <- fisher.test(table(characteristics_data$Concomitant_Disease_Present, characteristics_data$Aggregated_Group))['p.value'] %>% unlist() %>% unname()
 
 All_groups_kruskal_CD4_D0 <- kruskal.test(CD4_d0 ~ Aggregated_Group, data = characteristics_data)$p.value
 
@@ -411,8 +430,10 @@ primary_v_chronic_ART <- sapply(levels(primary_v_chronic_data$Group), function(x
   paste0(num_ART, ' (', round((num_ART / total_patients) * 100, 1), ')')
 }, simplify = FALSE, USE.NAMES = TRUE)
 
-primary_v_chronic_Concomitant_Disease <- sapply(levels(primary_v_chronic_data$Group), function(x) {
-  num_Concomitant_Disease <- primary_v_chronic_data %>% filter(Group == x) %>% filter(Concomitant_Disease == 'Yes') %>% nrow()
+primary_v_chronic_ART_regime <- table(primary_v_chronic_data$ART_Regimen, primary_v_chronic_data$Group)
+
+primary_v_chronic_Concomitant_Disease_Present <- sapply(levels(primary_v_chronic_data$Group), function(x) {
+  num_Concomitant_Disease <- primary_v_chronic_data %>% filter(Group == x) %>% filter(Concomitant_Disease_Present == 'Yes') %>% nrow()
   total_patients <- primary_v_chronic_data %>% filter(Group == x) %>% nrow()
   paste0(num_Concomitant_Disease, ' (', round((num_Concomitant_Disease / total_patients) * 100, 1), ')')
 }, simplify = FALSE, USE.NAMES = TRUE)
@@ -514,7 +535,9 @@ primary_v_chronic_fisher_Treatment_Regimen <- fisher.test(table(primary_v_chroni
 
 primary_v_chronic_fisher_ART <- fisher.test(table(primary_v_chronic_data$ART_Baseline, primary_v_chronic_data$Group))['p.value'] %>% unlist() %>% unname()
 
-primary_v_chronic_fisher_Concomitant_Disease <- fisher.test(table(primary_v_chronic_data$Concomitant_Disease, primary_v_chronic_data$Group))['p.value'] %>% unlist() %>% unname()
+primary_v_chronic_fisher_ART_regime <- fisher.test(primary_v_chronic_ART_regime)['p.value']
+
+primary_v_chronic_fisher_Concomitant_Disease_Present <- fisher.test(table(primary_v_chronic_data$Concomitant_Disease_Present, primary_v_chronic_data$Group))['p.value'] %>% unlist() %>% unname()
 
 primary_v_chronic_fisher_RK39RDT <- fisher.test(table(primary_v_chronic_data$RK39RDT_Pos, primary_v_chronic_data$Group))['p.value'] %>% unlist() %>% unname()
 primary_v_chronic_fisher_RK39ELISA <- fisher.test(table(primary_v_chronic_data$RK39ELISA_Pos, primary_v_chronic_data$Group))['p.value'] %>% unlist() %>% unname()

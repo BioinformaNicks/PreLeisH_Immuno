@@ -368,7 +368,7 @@ celltype_colors <- c("CD4+ T Proliferating" = "#FF9D9A", "CD4+ T Naive" = "#D372
 
 cross_sect_umap_axes <- DimPlot(csect_combined, label = T, repel = T, label.size = 8, pt.size = 1.2,
                                 cols = celltype_colors) +
-  ggtitle("UMAP representation of immune cells of all patient groups") +
+  ggtitle("All group comparison (disease groups)") +
   theme_void() + theme(legend.position = 'none',
                      panel.grid = element_blank(),
                      plot.title = element_text(hjust = 0.5, family = text_font, size = 36, face = 'bold')) + 

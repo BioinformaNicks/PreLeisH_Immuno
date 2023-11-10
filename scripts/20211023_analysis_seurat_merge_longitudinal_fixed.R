@@ -62,7 +62,7 @@ batch_list <- list(vector(mode = 'list', length = length(batch1_ids)),
 
 GE_data_loader <- function(batch_dir, batch_ids, batch_num) {
   
-  disease_groups <- c("pVL_HIV", "cVL_HIV", "pVL_HIV", "cVL_HIV")
+  disease_groups <- c("ncVL_HIV", "cVL_HIV", "ncVL_HIV", "cVL_HIV")
   treatment_timepoints <- c('D0', 'D0', 'EOT', 'EOT')
   
   for (i in seq_along(batch_ids)) {
@@ -331,12 +331,12 @@ long_combined$final.ident <- Idents(long_combined)
 ##                      Cellular composition                     #
 ##################################################################
 
-long_combined$disease_group <- factor(long_combined$disease_group, levels = c('pVL_HIV', 'cVL_HIV'))
+long_combined$disease_group <- factor(long_combined$disease_group, levels = c('ncVL_HIV', 'cVL_HIV'))
 long_combined$treatment_timepoint <- as.factor(long_combined$treatment_timepoint)
 long_combined$treatment_timepoint <- factor(long_combined$treatment_timepoint, levels = c('D0', 'EOT'))
 long_combined$cloneType <- as.factor(long_combined$cloneType)
 long_combined$cloneType <- factor(long_combined$cloneType, levels = c("Hyperexpanded (100 < X <= 500)", "Large (20 < X <= 100)", "Medium (5 < X <= 20)", "Small (1 < X <= 5)", "Single (0 < X <= 1)", NA))
-long_combined$dg_tt <- factor(paste0(long_combined$disease_group, '_', long_combined$treatment_timepoint), levels = c('pVL_HIV_D0', 'pVL_HIV_EOT', 'cVL_HIV_D0', 'cVL_HIV_EOT'))
+long_combined$dg_tt <- factor(paste0(long_combined$disease_group, '_', long_combined$treatment_timepoint), levels = c('ncVL_HIV_D0', 'ncVL_HIV_EOT', 'cVL_HIV_D0', 'cVL_HIV_EOT'))
 
 ##----------------------------------------------------------------
 ##                  UMAPs and frequency tables                   -
@@ -351,7 +351,7 @@ celltype_colors <- c("CD4+ T Proliferating" = "#FF9D9A", "CD4+ T Naive" = "#D372
 
 longitudinal_umap_axes <- DimPlot(long_combined, label = T, repel = T, label.size = 8, pt.size = 1.2,
                                   cols = celltype_colors) +
-  ggtitle("UMAP representation of immune cells of VL-HIV patients") +
+  ggtitle("Longitudinal comparison VL-HIV patients (VL treatment)") +
   theme_void() + theme(legend.position = 'none',
                      panel.grid = element_blank(),
                      plot.title = element_text(hjust = 0.5, family = text_font, size = 36, face = 'bold')) + 
@@ -392,7 +392,7 @@ rm(temp_long_combined)
 gc()
 
 stacked_barchart_longitudinal <- ggplot(mean_table,
-                                        aes(factor(Condition, levels = c("pVL_HIV_D0", "pVL_HIV_EOT", "cVL_HIV_D0", "cVL_HIV_EOT")), Mean_Percentage,
+                                        aes(factor(Condition, levels = c("ncVL_HIV_D0", "ncVL_HIV_EOT", "cVL_HIV_D0", "cVL_HIV_EOT")), Mean_Percentage,
                                             fill = factor(Celltype, levels = c("CD4+ T Proliferating", "CD4+ T Naive", "CD4+ TCM", "CD4+ TEM",
                                                                                           "CD8+ T Proliferating", "CD8+ T Naive", "CD8+ TCM", "CD8+ TEM",
                                                                                           'gdT', "NK Proliferating", "CD56dim NK", "CD56bright NK",
@@ -402,7 +402,7 @@ stacked_barchart_longitudinal <- ggplot(mean_table,
   geom_bar(stat = "identity") +
   labs(y = 'Percentage') +
   scale_x_discrete(expand = c(0.08, 0.23),
-                   labels = paste0(levels(factor(mean_table$Condition, levels = c("pVL_HIV_D0", "pVL_HIV_EOT", "cVL_HIV_D0", "cVL_HIV_EOT"))), ' (n = ', total_cellcounts_per_group$Cells, ')'))+
+                   labels = paste0(levels(factor(mean_table$Condition, levels = c("ncVL_HIV_D0", "ncVL_HIV_EOT", "cVL_HIV_D0", "cVL_HIV_EOT"))), ' (n = ', total_cellcounts_per_group$Cells, ')'))+
   scale_y_continuous(expand = c(0.00, 0.01)) +
   ggtitle("Cellular composition of VL-HIV patients") +
   theme_classic() + theme(axis.title = element_text(size = 32, family = text_font),
@@ -433,8 +433,8 @@ arranged_plot <- cross_sect_umap_axes + stacked_barchart_cross_sectional +
   #celltype_barchart_cross_sectional + celltype_barchart_longitudinal +
   plot_layout(design = layout) & plot_annotation(tag_levels = c('a')) & theme(plot.tag = element_text(size = 36, face = 'bold'))
 
-# ggsave(here("analyses", "final_output", 'Figure3_UMAP_Composition.pdf'), arranged_plot, height = 17.5, width = 30, device = cairo_pdf)
-# ggsave(here("analyses", "final_output", 'Figure3_UMAP_Composition.png'), arranged_plot, height = 17.5, width = 30, type = 'cairo-png')
+ggsave(here("analyses", "final_output", 'Figure3_UMAP_Composition.pdf'), arranged_plot, height = 17.5, width = 30, device = cairo_pdf)
+ggsave(here("analyses", "final_output", 'Figure3_UMAP_Composition.png'), arranged_plot, height = 17.5, width = 30, type = 'cairo-png')
 
 #################################################################
 ##                    Differential Expression                   #
@@ -448,12 +448,12 @@ allcd4 <- names(long_combined@active.ident[grepl('CD4', long_combined@active.ide
 cd4_subset <- subset(long_combined, cells = allcd4)
 
 Idents(cd4_subset) <- 'treatment_timepoint'
-CD4_D0_cVL_vs_rVL <- FindMarkers(cd4_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'D0', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-CD4_EOT_cVL_vs_rVL <- FindMarkers(cd4_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'EOT', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+CD4_D0_cVL_vs_ncVL <- FindMarkers(cd4_subset, ident.1 = 'ncVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'D0', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+CD4_EOT_cVL_vs_ncVL <- FindMarkers(cd4_subset, ident.1 = 'ncVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'EOT', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
 
 Idents(cd4_subset) <- 'disease_group'
-CD4_cVL_EOT_vs_D0 <- FindMarkers(cd4_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'pVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-CD4_rVL_EOT_vs_D0 <- FindMarkers(cd4_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'cVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+CD4_cVL_EOT_vs_D0 <- FindMarkers(cd4_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'ncVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+CD4_ncVL_EOT_vs_D0 <- FindMarkers(cd4_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'cVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
 
 
 ##----------------------------------------------------------------
@@ -464,115 +464,17 @@ allcd8 <- names(long_combined@active.ident[grepl('CD8', long_combined@active.ide
 cd8_subset <- subset(long_combined, cells = allcd8)
 
 Idents(cd8_subset) <- 'treatment_timepoint'
-CD8_D0_cVL_vs_rVL <- FindMarkers(cd8_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'D0', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-CD8_EOT_cVL_vs_rVL <- FindMarkers(cd8_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'EOT', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+CD8_D0_cVL_vs_ncVL <- FindMarkers(cd8_subset, ident.1 = 'ncVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'D0', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+CD8_EOT_cVL_vs_ncVL <- FindMarkers(cd8_subset, ident.1 = 'ncVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'EOT', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
 
 Idents(cd8_subset) <- 'disease_group'
-CD8_cVL_EOT_vs_D0 <- FindMarkers(cd8_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'pVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-CD8_rVL_EOT_vs_D0 <- FindMarkers(cd8_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'cVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+CD8_cVL_EOT_vs_D0 <- FindMarkers(cd8_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'ncVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+CD8_ncVL_EOT_vs_D0 <- FindMarkers(cd8_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'cVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
 
-##----------------------------------------------------------------
-##                Differential Expression APC                    -
-##----------------------------------------------------------------
-
-allAPC <- names(long_combined@active.ident[grepl('Monocytes', long_combined@active.ident) | grepl('Dendritic', long_combined@active.ident)])
-apc_subset <- subset(long_combined, cells = allAPC)
-
-Idents(apc_subset) <- 'treatment_timepoint'
-APC_D0_cVL_vs_rVL <- FindMarkers(apc_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'D0', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-APC_EOT_cVL_vs_rVL <- FindMarkers(apc_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'EOT', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-
-Idents(apc_subset) <- 'disease_group'
-APC_cVL_EOT_vs_D0 <- FindMarkers(apc_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'pVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-APC_rVL_EOT_vs_D0 <- FindMarkers(apc_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'cVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-
-##----------------------------------------------------------------
-##                  Differential Expression NK                   -
-##----------------------------------------------------------------
-
-allNK <- names(long_combined@active.ident[grepl('NK', long_combined@active.ident) & !grepl('Proliferating', long_combined@active.ident)])
-nk_subset <- subset(long_combined, cells = allNK)
-
-Idents(nk_subset) <- 'treatment_timepoint'
-NK_D0_cVL_vs_rVL <- FindMarkers(nk_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'D0', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-NK_EOT_cVL_vs_rVL <- FindMarkers(nk_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'EOT', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-
-Idents(nk_subset) <- 'disease_group'
-NK_cVL_EOT_vs_D0 <- FindMarkers(nk_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'pVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-NK_rVL_EOT_vs_D0 <- FindMarkers(nk_subset, ident.1 = 'EOT', ident.2 = 'D0', group.by = 'treatment_timepoint', subset.ident = 'cVL_HIV', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-
-##################################################################
-##  Differential Expression Expanding vs Non-expanding T cells   #
-##################################################################
-
-# cd4_subset <- subset(long_combined, cells = allcd4)
-# cd8_subset <- subset(long_combined, cells = allcd8)
-# cd4_subset$expanding <- case_when(cd4_subset$cloneType %in% c("Small (1 < X <= 5)", "Medium (5 < X <= 20)", "Large (20 < X <= 100)", "Hyperexpanded (100 < X <= 500)") ~ 'Expanding',
-#                                   cd4_subset$cloneType == "Single (0 < X <= 1)" ~ 'Non-expanding')
-# cd8_subset$expanding <- case_when(cd8_subset$cloneType %in% c("Small (1 < X <= 5)", "Medium (5 < X <= 20)", "Large (20 < X <= 100)", "Hyperexpanded (100 < X <= 500)") ~ 'Expanding',
-#                                   cd8_subset$cloneType == "Single (0 < X <= 1)" ~ 'Non-expanding')
-# 
-# cd4_D0_subset <- subset(cd4_subset, treatment_timepoint == 'D0')
-# cd4_EOT_subset <- subset(cd4_subset, treatment_timepoint == 'EOT')
-# cd8_D0_subset <- subset(cd8_subset, treatment_timepoint == 'D0')
-# cd8_EOT_subset <- subset(cd8_subset, treatment_timepoint == 'EOT')
-# 
-# Idents(cd4_D0_subset) <- 'expanding'
-# Idents(cd4_EOT_subset) <- 'expanding'
-# Idents(cd8_D0_subset) <- 'expanding'
-# Idents(cd8_EOT_subset) <- 'expanding'
-# 
-# cd4_expanding_D0_cVL_rVL <- FindMarkers(cd4_D0_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'Expanding', min.pct = 0.1, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-# cd4_expanding_EOT_cVL_rVL <- FindMarkers(cd4_EOT_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'Expanding', min.pct = 0.1, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-# 
-# cd8_expanding_D0_cVL_rVL <- FindMarkers(cd8_D0_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'Expanding', min.pct = 0.1, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
-# cd8_expanding_EOT_cVL_rVL <- FindMarkers(cd8_EOT_subset, ident.1 = 'pVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', subset.ident = 'Expanding', min.pct = 0.1, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
 
 ##################################################################
 ##        Generating DE VolcanoPlots & Enrichment Networks       #
 ##################################################################
-
-generate_vulcano_plots <- function(marker_list, num_genes_to_display) {
-  
-  vulcano_plot_list <- lapply(seq_along(marker_list), function(x) {
-    tmp <- marker_list[[x]]
-    
-    tmp <- tmp %>%
-      mutate(Trend = ifelse(p_val_adj < 0.05 & avg_log2FC > 0, "Up",
-                            ifelse(p_val_adj < 0.05 & avg_log2FC < 0, "Down", "None")))
-    filter <- subset(tmp, p_val_adj < 0.05)
-    top_n_genes <- filter %>% top_n(n = num_genes_to_display, wt = avg_log2FC + 4*diff)
-    bottom_n_genes <- filter %>% top_n(n = -num_genes_to_display, wt = avg_log2FC + 4*diff)
-    
-    tmp <- tmp %>%
-      mutate(p_val_adj = ifelse(p_val_adj == 0, min(p_val_adj), p_val_adj)) #mutate the p-values that are lower than detection
-    
-    ggplot(tmp, aes(x=avg_log2FC, y=-log10(p_val_adj))) + 
-      geom_point(size=0.5, color="#999999") + 
-      geom_point(data=subset(tmp, Trend == "Up" | Trend == "Down"), aes(color = Trend)) + 
-      ggtitle(names(marker_list)[x]) +
-      labs(x = "Log2(Fold change)", y = "-Log10(P value adjusted)") +
-      theme_bw() + 
-      theme(plot.title = element_text(hjust = 0.5, family = 'Roboto Condensed', size = 24),
-            text = element_text(family = 'Roboto Condensed'),
-            axis.title = element_text(family = 'Roboto Condensed', size = 20),
-            axis.text = element_text(family = 'Roboto Condensed', size = 18),
-            #panel.border = element_rect(colour = "black", fill=NA, size=1),
-            panel.grid.major.x = element_line(color="#dadfe6", size=0.15),
-            panel.grid.major.y = element_line(color="#dadfe6", size=0.15)) +
-      scale_y_sqrt() +
-      geom_vline(xintercept = 0, lty = 2) + 
-      geom_hline(yintercept = 1.3, lty = 2) + 
-      geom_text_repel(data=subset(tmp, gene %in% top_n_genes$gene), aes(label=gene), segment.size = 0.25, size=4) + 
-      geom_text_repel(data=subset(tmp, gene %in% bottom_n_genes$gene & !gene %in% top_n_genes$gene), aes(label=gene), segment.size = 0.25, size=4) + 
-      scale_color_manual(values = c("#0348A6", "#FF4B20")) + 
-      guides(color = "none")
-    
-  })
-  
-  names(vulcano_plot_list) <- names(marker_list)
-  return(vulcano_plot_list)
-}
 
 enrichment_plotter <- function(marker_list, x_axis_text_size) {
   
@@ -630,8 +532,8 @@ enrichment_plotter <- function(marker_list, x_axis_text_size) {
       
       enriched <- setReadable(enriched, org.Hs.eg.db, keyType = "ENTREZID")
 
-      p <- heatplot(enriched, showCategory = 12, foldChange = enrich_ready) +
-        scale_y_discrete(label = function(y) gsub("_", " ", stringr::str_trunc(y, 43))) +
+      hp <- heatplot(enriched, showCategory = 15, foldChange = enrich_ready) +
+        scale_y_discrete(label = function(y) gsub("_", " ", stringr::str_trunc(y, 40))) +
         ggtitle(names(marker_list)[x]) +
         theme_bw() + 
         #scale_fill_gradient2(high = "#9a133d", low = "#1a318b", mid = "#ffffff") +
@@ -641,13 +543,28 @@ enrichment_plotter <- function(marker_list, x_axis_text_size) {
               text = element_text(family = text_font),
               axis.title = element_blank(),
               axis.text.x = element_text(family = text_font, size = x_axis_text_size[x], face = 'bold'),
-              axis.text.y = element_text(family = text_font, size = 20, face = 'bold'),
+              axis.text.y = element_text(family = text_font, size = 17, face = 'bold'),
               legend.title = element_text(family = text_font, size = 21, face = 'bold'),
-              legend.text = element_text(family = text_font, size = 20)) + ggpubr::rotate_x_text(angle = 90)
+              legend.text = element_text(family = text_font, size = 18)) + ggpubr::rotate_x_text(angle = 90)
       
-      #p$layers[[1]]$aes_params$colour <- 'black'
+      dp <- mutate(enriched, qscore = -log(p.adjust, base = 10)) %>%
+        barplot(x = 'qscore', showCategory = 15) +
+        #dotplot(enriched, showCategory = nrow(filter(enriched@result, p.adjust < 0.05))) +
+        scale_y_discrete(label = function(y) gsub("_", " ", stringr::str_trunc(y, 40))) +
+        ggtitle(names(marker_list)[x]) +
+        theme_bw() + 
+        theme(plot.title = element_text(hjust = 0.5, family = text_font, size = 36, face = 'bold'),
+              text = element_text(family = text_font),
+              axis.title.x = element_text(family = text_font, size = 20, face = 'bold'),
+              axis.text.x = element_text(family = text_font, size = x_axis_text_size[x], face = 'bold'),
+              axis.title.y = element_blank(),
+              axis.text.y = element_text(family = text_font, size = 14, face = 'bold'),
+              legend.title = element_text(family = text_font, size = 21, face = 'bold'),
+              legend.text = element_text(family = text_font, size = 18))
       
-      return(p)
+      #hp$layers[[1]]$aes_params$colour <- 'black'
+      
+      return(list(hp, dp))
     } else {
       return(NULL)
     }
@@ -658,49 +575,26 @@ enrichment_plotter <- function(marker_list, x_axis_text_size) {
   
 }
 
-cd4_cVL_vs_rVL_list <- list('CD4+ T Primary VL-HIV vs Chronic VL-HIV at D0' = CD4_D0_cVL_vs_rVL,
-                        'CD4+ T Primary VL-HIV vs Chronic VL-HIV at EOT' = CD4_EOT_cVL_vs_rVL)
+cd4_cVL_vs_ncVL_list <- list('CD4+ T Non-Chronic VL-HIV vs Chronic VL-HIV at D0' = CD4_D0_cVL_vs_ncVL,
+                        'CD4+ T Non-Chronic VL-HIV vs Chronic VL-HIV at EOT' = CD4_EOT_cVL_vs_ncVL)
 
-cd4_EOT_vs_D0_list <- list('CD4+ T Primary VL-HIV EOT vs D0' = CD4_cVL_EOT_vs_D0,
-                           'CD4+ T Chronic VL-HIV EOT vs D0' = CD4_rVL_EOT_vs_D0)
+cd4_EOT_vs_D0_list <- list('CD4+ T Non-Chronic VL-HIV EOT vs D0' = CD4_cVL_EOT_vs_D0,
+                           'CD4+ T Chronic VL-HIV EOT vs D0' = CD4_ncVL_EOT_vs_D0)
 
-cd8_cVL_vs_rVL_list <- list('CD8+ T Primary VL-HIV vs Chronic VL-HIV at D0' = CD8_D0_cVL_vs_rVL,
-                            'CD8+ T Primary VL-HIV vs Chronic VL-HIV at EOT' = CD8_EOT_cVL_vs_rVL)
+cd8_cVL_vs_ncVL_list <- list('CD8+ T Non-Chronic VL-HIV vs Chronic VL-HIV at D0' = CD8_D0_cVL_vs_ncVL,
+                            'CD8+ T Non-Chronic VL-HIV vs Chronic VL-HIV at EOT' = CD8_EOT_cVL_vs_ncVL)
 
-cd8_EOT_vs_D0_list <- list('CD8+ T Primary VL-HIV EOT vs D0' = CD8_cVL_EOT_vs_D0,
-                           'CD8+ T Chronic VL-HIV EOT vs D0' = CD8_rVL_EOT_vs_D0)
+cd8_EOT_vs_D0_list <- list('CD8+ T Non-Chronic VL-HIV EOT vs D0' = CD8_cVL_EOT_vs_D0,
+                           'CD8+ T Chronic VL-HIV EOT vs D0' = CD8_ncVL_EOT_vs_D0)
 
-apc_cVL_vs_rVL_list <- list('APC Primary VL-HIV vs Chronic VL-HIV at D0' = APC_D0_cVL_vs_rVL,
-                        'APC Primary VL-HIV vs Chronic VL-HIV at EOT' = APC_EOT_cVL_vs_rVL)
 
-apc_EOT_vs_D0_list <- list('APC Primary VL-HIV EOT vs D0' = APC_cVL_EOT_vs_D0,
-                        'APC Chronic VL-HIV EOT vs D0' = APC_rVL_EOT_vs_D0)
 
-nk_cVL_vs_rVL_list <- list('NK Primary VL-HIV vs Chronic VL-HIV at D0' = NK_D0_cVL_vs_rVL,
-                       'NK Primary VL-HIV vs Chronic VL-HIV at EOT' = NK_EOT_cVL_vs_rVL)
 
-nk_EOT_vs_D0_list <- list('NK Primary VL-HIV EOT vs D0' = NK_cVL_EOT_vs_D0,
-                           'NK Chronic VL-HIV EOT vs D0' = NK_rVL_EOT_vs_D0)
-
-# cd4_cVL_vs_rVL_vulcanos <- generate_vulcano_plots(cd4_cVL_vs_rVL_list, 30)
-# cd8_cVL_vs_rVL_vulcanos <- generate_vulcano_plots(cd8_cVL_vs_rVL_list, 30)
-# NK_cVL_vs_rVL_vulcanos <- generate_vulcano_plots(nk_cVL_vs_rVL_list, 30)
-# APC_cVL_vs_rVL_vulcanos <- generate_vulcano_plots(apc_cVL_vs_rVL_list, 30)
-# 
-# cd4_EOT_vs_D0_vulcanos <- generate_vulcano_plots(cd4_EOT_vs_D0_list, 30)
-# cd8_EOT_vs_D0_vulcanos <- generate_vulcano_plots(cd8_EOT_vs_D0_list, 30)
-# NK_EOT_vs_D0_vulcanos <- generate_vulcano_plots(nk_EOT_vs_D0_list, 30)
-# APC_EOT_vs_D0_vulcanos <- generate_vulcano_plots(apc_EOT_vs_D0_list, 30)
-
-cd4_cVL_vs_rVL_enrichplots <- enrichment_plotter(cd4_cVL_vs_rVL_list, c(16, 14))
-cd8_cVL_vs_rVL_enrichplots <- enrichment_plotter(cd8_cVL_vs_rVL_list, c(13, 13))
-NK_cVL_vs_rVL_enrichplots <- enrichment_plotter(nk_cVL_vs_rVL_list, c(20, 20))
-APC_cVL_vs_rVL_enrichplots <- enrichment_plotter(apc_cVL_vs_rVL_list, c(11, 19))
+cd4_cVL_vs_ncVL_enrichplots <- enrichment_plotter(cd4_cVL_vs_ncVL_list, c(16, 14))
+cd8_cVL_vs_ncVL_enrichplots <- enrichment_plotter(cd8_cVL_vs_ncVL_list, c(13, 13))
 
 cd4_EOT_vs_D0_enrichplots <- enrichment_plotter(cd4_EOT_vs_D0_list, c(17, 16))
 cd8_EOT_vs_D0_enrichplots <- enrichment_plotter(cd8_EOT_vs_D0_list, c(16, 17))
-NK_EOT_vs_D0_enrichplots <- enrichment_plotter(nk_EOT_vs_D0_list, c(20, 20))
-APC_EOT_vs_D0_enrichplots <- enrichment_plotter(apc_EOT_vs_D0_list, c(17, 20))
 
 
 layout <- "
@@ -710,41 +604,35 @@ CCCCCC
 DDDDDD
 "
 
-cd4_enrichment_arranged <- cd4_cVL_vs_rVL_enrichplots$`CD4+ T Primary VL-HIV vs Chronic VL-HIV at D0` + cd4_cVL_vs_rVL_enrichplots$`CD4+ T Primary VL-HIV vs Chronic VL-HIV at EOT` +
-  cd4_EOT_vs_D0_enrichplots$`CD4+ T Primary VL-HIV EOT vs D0` + cd4_EOT_vs_D0_enrichplots$`CD4+ T Chronic VL-HIV EOT vs D0` +
+cd4_enrichment_arranged <- cd4_cVL_vs_ncVL_enrichplots$`CD4+ T Non-Chronic VL-HIV vs Chronic VL-HIV at D0`[[1]] + cd4_cVL_vs_ncVL_enrichplots$`CD4+ T Non-Chronic VL-HIV vs Chronic VL-HIV at EOT`[[1]] +
+  cd4_EOT_vs_D0_enrichplots$`CD4+ T Non-Chronic VL-HIV EOT vs D0`[[1]] + cd4_EOT_vs_D0_enrichplots$`CD4+ T Chronic VL-HIV EOT vs D0`[[1]] +
   plot_layout(design = layout) + plot_annotation(tag_levels = c('a')) & theme(plot.tag = element_text(size = 40, face = 'bold'))
 
-cd8_enrichment_arranged <- cd8_cVL_vs_rVL_enrichplots$`CD8+ T Primary VL-HIV vs Chronic VL-HIV at D0` + cd8_cVL_vs_rVL_enrichplots$`CD8+ T Primary VL-HIV vs Chronic VL-HIV at EOT` +
-  cd8_EOT_vs_D0_enrichplots$`CD8+ T Primary VL-HIV EOT vs D0` + cd8_EOT_vs_D0_enrichplots$`CD8+ T Chronic VL-HIV EOT vs D0` +
+cd8_enrichment_arranged <- cd8_cVL_vs_ncVL_enrichplots$`CD8+ T Non-Chronic VL-HIV vs Chronic VL-HIV at D0`[[1]] + cd8_cVL_vs_ncVL_enrichplots$`CD8+ T Non-Chronic VL-HIV vs Chronic VL-HIV at EOT`[[1]] +
+  cd8_EOT_vs_D0_enrichplots$`CD8+ T Non-Chronic VL-HIV EOT vs D0`[[1]] + cd8_EOT_vs_D0_enrichplots$`CD8+ T Chronic VL-HIV EOT vs D0`[[1]] +
   plot_layout(design = layout) + plot_annotation(tag_levels = c('a')) & theme(plot.tag = element_text(size = 40, face = 'bold'))
 
-cd4_cd8_cVL_vs_rVL_arranged <- cd4_cVL_vs_rVL_enrichplots$`CD4+ T Primary VL-HIV vs Chronic VL-HIV at D0` + cd4_cVL_vs_rVL_enrichplots$`CD4+ T Primary VL-HIV vs Chronic VL-HIV at EOT` +
-  cd8_cVL_vs_rVL_enrichplots$`CD8+ T Primary VL-HIV vs Chronic VL-HIV at D0` + cd8_cVL_vs_rVL_enrichplots$`CD8+ T Primary VL-HIV vs Chronic VL-HIV at EOT` +
+cd4_cd8_cVL_vs_ncVL_arranged <- cd4_cVL_vs_ncVL_enrichplots$`CD4+ T Non-Chronic VL-HIV vs Chronic VL-HIV at D0`[[1]] + cd4_cVL_vs_ncVL_enrichplots$`CD4+ T Non-Chronic VL-HIV vs Chronic VL-HIV at EOT`[[1]] +
+  cd8_cVL_vs_ncVL_enrichplots$`CD8+ T Non-Chronic VL-HIV vs Chronic VL-HIV at D0`[[1]] + cd8_cVL_vs_ncVL_enrichplots$`CD8+ T Non-Chronic VL-HIV vs Chronic VL-HIV at EOT`[[1]] +
   plot_layout(design = layout) + plot_annotation(tag_levels = c('a')) & theme(plot.tag = element_text(size = 40, face = 'bold'))
 
-cd4_cd8_EOT_vs_D0_arranged <- cd4_EOT_vs_D0_enrichplots$`CD4+ T Primary VL-HIV EOT vs D0` + cd4_EOT_vs_D0_enrichplots$`CD4+ T Chronic VL-HIV EOT vs D0` +
-  cd8_EOT_vs_D0_enrichplots$`CD8+ T Primary VL-HIV EOT vs D0` + cd8_EOT_vs_D0_enrichplots$`CD8+ T Chronic VL-HIV EOT vs D0` +
+cd4_cd8_EOT_vs_D0_arranged <- cd4_EOT_vs_D0_enrichplots$`CD4+ T Non-Chronic VL-HIV EOT vs D0`[[1]] + cd4_EOT_vs_D0_enrichplots$`CD4+ T Chronic VL-HIV EOT vs D0`[[1]] +
+  cd8_EOT_vs_D0_enrichplots$`CD8+ T Non-Chronic VL-HIV EOT vs D0`[[1]] + cd8_EOT_vs_D0_enrichplots$`CD8+ T Chronic VL-HIV EOT vs D0`[[1]] +
   plot_layout(design = layout) + plot_annotation(tag_levels = c('a')) & theme(plot.tag = element_text(size = 40, face = 'bold'))
 
-NK_arranged <- NK_cVL_vs_rVL_enrichplots$`NK Primary VL-HIV vs Chronic VL-HIV at D0` + NK_cVL_vs_rVL_enrichplots$`NK Primary VL-HIV vs Chronic VL-HIV at EOT` +
-  NK_EOT_vs_D0_enrichplots$`NK Primary VL-HIV EOT vs D0` + NK_EOT_vs_D0_enrichplots$`NK Chronic VL-HIV EOT vs D0` +
+cd4_cd8_EOT_vs_D0_score_arranged <- cd4_EOT_vs_D0_enrichplots$`CD4+ T Non-Chronic VL-HIV EOT vs D0`[[2]] + cd4_EOT_vs_D0_enrichplots$`CD4+ T Chronic VL-HIV EOT vs D0`[[2]] +
+  cd8_EOT_vs_D0_enrichplots$`CD8+ T Non-Chronic VL-HIV EOT vs D0`[[2]] + cd8_EOT_vs_D0_enrichplots$`CD8+ T Chronic VL-HIV EOT vs D0`[[2]] +
   plot_layout(design = layout) + plot_annotation(tag_levels = c('a')) & theme(plot.tag = element_text(size = 40, face = 'bold'))
 
-APC_arranged <- APC_cVL_vs_rVL_enrichplots$`APC Primary VL-HIV vs Chronic VL-HIV at D0` + APC_cVL_vs_rVL_enrichplots$`APC Primary VL-HIV vs Chronic VL-HIV at EOT` + 
-  APC_EOT_vs_D0_enrichplots$`APC Primary VL-HIV EOT vs D0` +APC_EOT_vs_D0_enrichplots$`APC Chronic VL-HIV EOT vs D0` + 
-  plot_layout(design = layout) + plot_annotation(tag_levels = c('a')) & theme(plot.tag = element_text(size = 40, face = 'bold'))
 
-# 
-# ggsave(here("analyses", "final_output", "Figure8_SingleCell_CD4.pdf"), cd4_enrichment_arranged, dev = Cairo, type = 'pdf', height = 21, width = 30)
-# ggsave(here("analyses", "final_output", "Figure8_SingleCell_CD4.png"), cd4_enrichment_arranged, type = 'cairo-png', height = 21, width = 30)
-# 
-# ggsave(here("analyses", "final_output", "supplemental", "SuppFigure3_SingleCell_CD8.pdf"), cd8_enrichment_arranged, dev = Cairo, type = 'pdf', height = 21, width = 30)
-# ggsave(here("analyses", "final_output", "supplemental", "SuppFigure3_SingleCell_CD8.png"), cd8_enrichment_arranged, type = 'cairo-png', height = 21, width = 30)
-# 
-# ggsave(here("analyses", "final_output", "supplemental", "SuppFigure4_SingleCell_NK.pdf"), NK_arranged, dev = Cairo, type = 'pdf', height = 22.5, width = 25)
-# ggsave(here("analyses", "final_output", "supplemental", "SuppFigure5_SingleCell_APC.pdf"), APC_arranged, dev = Cairo, type = 'pdf', height = 22.5, width = 32.5)
-# ggsave(here("analyses", "final_output", "supplemental", "SuppFigure4_SingleCell_NK.png"), NK_arranged, type = 'cairo-png',  height = 22.5, width = 25)
-# ggsave(here("analyses", "final_output", "supplemental", "SuppFigure5_SingleCell_APC.png"), APC_arranged, type = 'cairo-png',  height = 22.5, width = 32.5)
+ggsave(here("analyses", "final_output", "Figure8_SingleCell_DE.pdf"), cd4_cd8_EOT_vs_D0_arranged, dev = Cairo, type = 'pdf', height = 22, width = 30)
+ggsave(here("analyses", "final_output", "Figure8_SingleCell_DE.png"), cd4_cd8_EOT_vs_D0_arranged, type = 'cairo-png', height = 22, width = 30)
+
+ggsave(here("analyses", "final_output", "supplemental", "SuppFigure12_SingleCell_DEScore.pdf"), cd4_cd8_EOT_vs_D0_score_arranged, dev = Cairo, type = 'pdf', height = 20, width = 27.5)
+ggsave(here("analyses", "final_output", "supplemental", "SuppFigure12_SingleCell_DEScore.png"), cd4_cd8_EOT_vs_D0_score_arranged, type = 'cairo-png', height = 20, width = 27.5)
+
+ggsave(here("analyses", "final_output", "supplemental", "SuppFigure13_SingleCell_DE.pdf"), cd4_cd8_cVL_vs_ncVL_arranged, dev = Cairo, type = 'pdf', height = 22, width = 30)
+ggsave(here("analyses", "final_output", "supplemental", "SuppFigure13_SingleCell_DE.png"), cd4_cd8_cVL_vs_ncVL_arranged, type = 'cairo-png', height = 22, width = 30)
 
 ##################################################################
 ##                          TCR Analysis                         #
@@ -785,7 +673,7 @@ long_tcr_by_treatment_timepoint <- expression2List(long_combined, split.by = 'tr
 ##                  Clonotype expansion alluvial                 -
 ##----------------------------------------------------------------
 
-Primary_subset <- subset(long_combined, subset = dg_tt %in% c("pVL_HIV_D0", "pVL_HIV_EOT"))
+NonChronic_subset <- subset(long_combined, subset = dg_tt %in% c("ncVL_HIV_D0", "ncVL_HIV_EOT"))
 Chronic_subset <- subset(long_combined, subset = dg_tt %in% c("cVL_HIV_D0", "cVL_HIV_EOT"))
 
 alluvial_colors <- c("#660d20", "#a00e00", "#eb1e2c", "#bD0a36", "#F83B4A", 
@@ -795,11 +683,11 @@ alluvial_colors <- c("#660d20", "#a00e00", "#eb1e2c", "#bD0a36", "#F83B4A",
                       "#8E79CB", "#C04FFA",  "#ED21CD", "#C15DCC", "#E842A0",
                       "#472c0b", "#7e5522", "#a97f2f", "#8c564b", "#D7B5A6")
 
-Primary_alluvial <- compareClonotypes(Primary_subset, split.by = 'dg_tt', numbers = 17, chain = 'both', cloneCall = 'aa') + #26 for top 25, 13 for new update. New update: 17 for top 30
+NonChronic_alluvial <- compareClonotypes(NonChronic_subset, split.by = 'dg_tt', numbers = 17, chain = 'both', cloneCall = 'aa') + #26 for top 25, 13 for new update. New update: 17 for top 30
   coord_cartesian(ylim = c(0, 0.45)) +
  scale_fill_manual(values = alluvial_colors) +
-  theme(axis.text.y = element_text(size = 16, family = text_font, color = 'black'),
-        axis.title.y = element_text(size = 16, family = text_font),
+  theme(axis.text.y = element_text(size = 18, family = text_font, color = 'black'),
+        axis.title.y = element_text(size = 20, family = text_font),
         axis.text.x = element_text(color='black', size=18, family=text_font, face = 'bold'),
         axis.title.x = element_blank(),
         legend.title = element_text(size = 18, family = text_font, face = 'bold', hjust = 0.5),
@@ -810,8 +698,8 @@ Primary_alluvial <- compareClonotypes(Primary_subset, split.by = 'dg_tt', number
 Chronic_alluvial <- scRepertoire::compareClonotypes(Chronic_subset, split.by = 'dg_tt', numbers = 21, chain = 'both', cloneCall = 'aa') + #33 for top 25, 17 for new update. New update: 21 for top 30
   coord_cartesian(ylim = c(0, 0.45)) +
   scale_fill_manual(values = alluvial_colors) +
-  theme(axis.text.y = element_text(size = 16, family = text_font, color = 'black'),
-        axis.title.y = element_text(size = 16, family = text_font),
+  theme(axis.text.y = element_text(size = 18, family = text_font, color = 'black'),
+        axis.title.y = element_text(size = 20, family = text_font),
         axis.text.x = element_text(color='black', size=18, family=text_font, face = 'bold'),
         axis.title.x = element_blank(),
         legend.title = element_text(size = 18, family = text_font, face = 'bold', hjust = 0.5),
@@ -819,57 +707,86 @@ Chronic_alluvial <- scRepertoire::compareClonotypes(Chronic_subset, split.by = '
         legend.position = 'bottom') +
   guides(fill=guide_legend(ncol=3, title.position = 'top'))
   
-#arranged_alluvial <- Primary_alluvial + Chronic_alluvial + plot_annotation(title = "T cell clonotype expansion in VL-HIV patients after treatment", theme = theme(plot.title = element_text(size = 30, family = text_font, face = 'bold', hjust = 0.5)))
+#arranged_alluvial <- NonChronic_alluvial + Chronic_alluvial + plot_annotation(title = "T cell clonotype expansion in VL-HIV patients after treatment", theme = theme(plot.title = element_text(size = 30, family = text_font, face = 'bold', hjust = 0.5)))
 
-Primary_alluvial_data <- Primary_alluvial$data %>% pivot_wider(. ,names_from = Sample, values_from = Proportion) %>%
+NonChronic_alluvial_data <- NonChronic_alluvial$data %>% pivot_wider(. ,names_from = Sample, values_from = Proportion) %>%
   replace(is.na(.), 0)
 
 Chronic_alluvial_data <- Chronic_alluvial$data %>% pivot_wider(. ,names_from = Sample, values_from = Proportion) %>%
   replace(is.na(.), 0) #%>% pivot_longer(., cols = c("cVL_HIV_D0", "cVL_HIV_EOT"), names_to = 'Sample', values_to = "Proportion")
 
-long_combined <- highlightClonotypes(long_combined, cloneCall = 'aa', sequence = Primary_alluvial$data$Clonotypes)
+long_combined <- highlightClonotypes(long_combined, cloneCall = 'aa', sequence = NonChronic_alluvial$data$Clonotypes)
 
 long_combined$aahigh <- ifelse(is.na(long_combined$highlight), NA, long_combined$CTaa)
+
+NonChronic_highlighted_subset <- subset(long_combined, subset = aahigh %in% c(NA, 'NA'), invert = T)
+
+NonChronic_highlighted <- occupiedscRepertoire(NonChronic_highlighted_subset, proportion = F) +
+  ggtitle("Non-Chronic VL-HIV: Phenotype of top 30 clonotypes") +
+  scale_fill_manual(values = colorblind_vector(5)) +
+  scale_x_discrete(limits = c("CD4+ TEM", "CD8+ T Proliferating", "CD8+ TCM", "CD8+ TEM")) +
+  theme(axis.text.y = element_text(size = 18, family = text_font, color = 'black'),
+        axis.title.y = element_text(size = 20, family = text_font),
+        axis.text.x = element_text(color='black', size=18, angle = 60, vjust = 0.5, family=text_font),
+        axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 18, family = text_font),
+        plot.title = element_text(hjust = 0.5, family = text_font, size = 30, face = 'bold'))
   
-Primary_highlighted <- DimPlot(long_combined, group.by = 'aahigh', pt.size = 1.2,
-                             cols = alluvial_colors) +
-  stat_ellipse(data = cd4_subset@meta.data, aes(x = Embeddings(cd4_subset[['umap']])[, "UMAP_1"], y = Embeddings(cd4_subset[['umap']])[, "UMAP_2"], label = 'CD4+ T cells', linewidth = 1, size = 20), geom = 'labelpath', hjust = 0.25, level = 0.93) +
-  stat_ellipse(data = cd8_subset@meta.data, aes(x = Embeddings(cd8_subset[['umap']])[, "UMAP_1"], y = Embeddings(cd8_subset[['umap']])[, "UMAP_2"], label = 'CD8+ T cells', linewidth = 1, size = 20), geom = 'labelpath', hjust = 0.75, level = 0.85) +
-  ggtitle("Primary VL-HIV") +
-  theme_void() + 
-  theme(legend.position = 'none',
-        plot.title = element_text(hjust = 0.5, family = text_font, size = 28, face = 'bold'))# + guides(color = guide_legend(nrow = 5, override.aes = list(size = 7.5)))
+# NonChronic_highlighted <- DimPlot(long_combined, group.by = 'aahigh', pt.size = 1.2,
+#                              cols = alluvial_colors) +
+#   stat_ellipse(data = cd4_subset@meta.data, aes(x = Embeddings(cd4_subset[['umap']])[, "UMAP_1"], y = Embeddings(cd4_subset[['umap']])[, "UMAP_2"], label = 'CD4+ T cells', linewidth = 1, size = 20), geom = 'labelpath', hjust = 0.25, level = 0.93) +
+#   stat_ellipse(data = cd8_subset@meta.data, aes(x = Embeddings(cd8_subset[['umap']])[, "UMAP_1"], y = Embeddings(cd8_subset[['umap']])[, "UMAP_2"], label = 'CD8+ T cells', linewidth = 1, size = 20), geom = 'labelpath', hjust = 0.75, level = 0.85) +
+#   ggtitle("Non-Chronic VL-HIV") +
+#   theme_void() + 
+#   theme(legend.position = 'none',
+#         plot.title = element_text(hjust = 0.5, family = text_font, size = 28, face = 'bold'))# + guides(color = guide_legend(nrow = 5, override.aes = list(size = 7.5)))
 
 long_combined <- highlightClonotypes(long_combined, cloneCall = 'aa', sequence = Chronic_alluvial$data$Clonotypes)
 long_combined$aahigh <- ifelse(is.na(long_combined$highlight), NA, long_combined$CTaa)
 
-Chronic_highlighted <- DimPlot(long_combined, group.by = 'aahigh', pt.size = 1.2,
-                                 cols = alluvial_colors) +
-  stat_ellipse(data = cd4_subset@meta.data, aes(x = Embeddings(cd4_subset[['umap']])[, "UMAP_1"], y = Embeddings(cd4_subset[['umap']])[, "UMAP_2"], label = 'CD4+ T cells', linewidth = 1, size = 20), geom = 'labelpath', hjust = 0.25, level = 0.93) +
-  stat_ellipse(data = cd8_subset@meta.data, aes(x = Embeddings(cd8_subset[['umap']])[, "UMAP_1"], y = Embeddings(cd8_subset[['umap']])[, "UMAP_2"], label = 'CD8+ T cells', linewidth = 1, size = 20), geom = 'labelpath', hjust = 0.75, level = 0.85) +
-  ggtitle("Chronic VL-HIV") +
-  theme_void() +
-  theme(legend.position = 'none',
-        plot.title = element_text(hjust = 0.5, family = text_font, size = 28, face = 'bold')) #+ guides(color = guide_legend(nrow = 5, override.aes = list(size = 7.5)))
+Chronic_highlighted_subset <- subset(long_combined, subset = aahigh %in% c(NA, 'NA'), invert = T)
+
+Chronic_highlighted <- occupiedscRepertoire(Chronic_highlighted_subset, proportion = F) +
+  ggtitle(" Chronic VL-HIV: Phenotype of top 30 clonotypes") +
+  scale_fill_manual(values = colorblind_vector(5)[2:5]) +
+  scale_x_discrete(limits = c("CD4+ TEM", "CD8+ T Proliferating", "CD8+ TCM", "CD8+ TEM")) +
+  theme(axis.text.y = element_text(size = 18, family = text_font, color = 'black'),
+        axis.title.y = element_text(size = 20, family = text_font),
+        axis.text.x = element_text(color='black', size=18, angle = 60, vjust = 0.5, family=text_font),
+        axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 18, family = text_font),
+        plot.title = element_text(hjust = 0.5, family = text_font, size = 30, face = 'bold'))
+
+
+# Chronic_highlighted <- DimPlot(long_combined, group.by = 'aahigh', pt.size = 1.2,
+#                                  cols = alluvial_colors) +
+#   stat_ellipse(data = cd4_subset@meta.data, aes(x = Embeddings(cd4_subset[['umap']])[, "UMAP_1"], y = Embeddings(cd4_subset[['umap']])[, "UMAP_2"], label = 'CD4+ T cells', linewidth = 1, size = 20), geom = 'labelpath', hjust = 0.25, level = 0.93) +
+#   stat_ellipse(data = cd8_subset@meta.data, aes(x = Embeddings(cd8_subset[['umap']])[, "UMAP_1"], y = Embeddings(cd8_subset[['umap']])[, "UMAP_2"], label = 'CD8+ T cells', linewidth = 1, size = 20), geom = 'labelpath', hjust = 0.75, level = 0.85) +
+#   ggtitle("Chronic VL-HIV") +
+#   theme_void() +
+#   theme(legend.position = 'none',
+#         plot.title = element_text(hjust = 0.5, family = text_font, size = 28, face = 'bold')) #+ guides(color = guide_legend(nrow = 5, override.aes = list(size = 7.5)))
 
 layout <- "
 AAABBB
 CCCDDD
 "
 
-arranged_clonotype <- Primary_alluvial + Chronic_alluvial + Primary_highlighted + Chronic_highlighted +
+arranged_clonotype <- NonChronic_alluvial + Chronic_alluvial + NonChronic_highlighted + Chronic_highlighted +
   plot_annotation(title = "T cell clonotype expansion in VL-HIV patients after treatment", tag_levels = c('a'), theme = theme(plot.title = element_text(size = 30, family = text_font, face = 'bold', hjust = 0.5))) &
   theme(plot.tag = element_text(size = 36, face = 'bold'))
 
-ggsave(here("analyses", "final_output", 'Figure7_ClonoTypes.pdf'), arranged_clonotype, height = 15, width = 25, dev = Cairo, type = 'pdf')
-ggsave(here("analyses", "final_output", 'Figure7_ClonoTypes.png'), arranged_clonotype, height = 15, width = 25, type = 'cairo-png')
+ggsave(here("analyses", "final_output", 'Figure9_ClonoTypes.pdf'), arranged_clonotype, height = 15, width = 27.5, dev = Cairo, type = 'pdf')
+ggsave(here("analyses", "final_output", 'Figure9_ClonoTypes.png'), arranged_clonotype, height = 15, width = 27.5, type = 'cairo-png')
 
-#arranged_clonotype <- arranged_alluvial + Primary_highlighted + Chronic_highlighted
+#arranged_clonotype <- arranged_alluvial + NonChronic_highlighted + Chronic_highlighted
 
-# Primary_alluvial_foldchanges <- Primary_alluvial$data %>% pivot_wider(. ,names_from = Sample, values_from = Proportion) %>% 
+# NonChronic_alluvial_foldchanges <- NonChronic_alluvial$data %>% pivot_wider(. ,names_from = Sample, values_from = Proportion) %>% 
 #   group_by(Clonotypes) %>% 
-#   mutate(Log2FC = log2(pVL_HIV_EOT / pVL_HIV_D0)) %>% 
-#   pivot_longer(., cols = c("pVL_HIV_D0", "pVL_HIV_EOT"), names_to = 'Sample', values_to = "Proportion")
+#   mutate(Log2FC = log2(ncVL_HIV_EOT / ncVL_HIV_D0)) %>% 
+#   pivot_longer(., cols = c("ncVL_HIV_D0", "ncVL_HIV_EOT"), names_to = 'Sample', values_to = "Proportion")
 # 
 # Chronic_alluvial_foldchanges <- Chronic_alluvial$data %>% pivot_wider(. ,names_from = Sample, values_from = Proportion) %>%
 #   replace(is.na(.), 0) %>%
@@ -877,97 +794,22 @@ ggsave(here("analyses", "final_output", 'Figure7_ClonoTypes.png'), arranged_clon
 #   mutate(Log2FC = log2((cVL_HIV_EOT + 1) / (cVL_HIV_D0 + 1))) %>%
 #   pivot_longer(., cols = c("cVL_HIV_D0", "cVL_HIV_EOT"), names_to = 'Sample', values_to = "Proportion")
 
-##----------------------------------------------------------------
-##            Writing TCR data to TCRex-compliant file           -
-##----------------------------------------------------------------
 
-long_tcrex_compliant <- data.frame(CDR3_beta = na_if(str_split(unname(long_combined$CTaa), '_', simplify = T)[,2], ""),
-                              TRBJ_gene = str_split(unname(long_combined$CTgene), "_", simplify = T)[,2],
-                              TRBV_gene = str_split(unname(long_combined$CTgene), "_", simplify = T)[,2],
-                              Barcode = names(long_combined@active.ident),
-                              Patient = long_combined$orig.ident,
-                              Disease_group = long_combined$disease_group,
-                              Treatment_timepoint = long_combined$treatment_timepoint,
-                              Celltype = unname(long_combined@active.ident),
-                              Frequency = long_combined$Frequency) %>%
-  mutate(CDR3_beta = na_if(CDR3_beta, 'NA'),
-         TRBJ_gene = na_if(TRBJ_gene, 'NA'),
-         TRBV_gene = na_if(TRBV_gene, 'NA')) %>% 
-  tidyr::separate_rows(., c(1:3), sep = ';') %>%
-  na.omit() %>%
-  mutate(TRBJ_gene = unlist(str_extract_all(TRBJ_gene, '(TRBJ\\d+-?\\d*)')),
-         TRBV_gene = unlist(str_extract_all(TRBV_gene, '(TRBV\\d+-?\\d*)')))
-# 
-# write.table(long_tcrex_compliant, 'longitudinal_tcrex_metadata.txt', sep = '\t', row.names = F, quote = F)
-# write.table(long_tcrex_compliant[,1:3], 'longitudinal_tcrex.txt', sep = '\t',  row.names = F, quote = F)
+###TEST
 
-##----------------------------------------------------------------
-##                      Diversity analysis                       -
-##----------------------------------------------------------------
+# occupiedscRepertoire(subset(long_combined, CTaa %in% Chronic_alluvial_data$Clonotypes), proportion = T) +
+#   labs(y = 'Proportion') +
+#   ggtitle("T cell clonotype expansion by phenotype") +
+#   scale_fill_manual(values = colorblind_vector(5)) +
+#   theme(axis.text.y = element_text(size = 18, family = text_font, color = 'black'),
+#         axis.title.y = element_text(size = 20, family = text_font),
+#         axis.text.x = element_text(color='black', size=18, angle = 60, vjust = 0.5, family=text_font),
+#         axis.title.x = element_blank(),
+#         legend.title = element_blank(),
+#         legend.text = element_text(size = 18, family = text_font),
+#         plot.title = element_text(hjust = 0.5, family = text_font, size = 30, face = 'bold')) + geom_text(aes(label = total, y = 1.025), fontface = 'bold')
 
-long_diversity_by_cluster <- clonalDiversity(long_tcr_by_cluster, cloneCall = 'gene+nt', chain = 'both', n.boots = 100, group = 'cluster')
-long_diversity_by_individual_data <- clonalDiversity(long_tcr_by_individual, cloneCall = 'gene+nt', chain = 'both', n.boots = 100, group = 'orig.ident', exportTable = T)
-long_diversity_by_individual_data$x.axis <- NULL
-long_diversity_by_individual_data <- suppressWarnings(melt(long_diversity_by_individual_data, id.vars = 'orig.ident'))
-long_diversity_by_individual_data <- long_diversity_by_individual_data %>% 
-  mutate(disease_group = ifelse(orig.ident %in% levels(as.factor(long_tcr_by_disease_group$cVL_HIV$orig.ident)), 'cVL_HIV', 'rVL_HIV')) %>%
-  mutate(treatment_timepoint = ifelse(orig.ident %in% levels(as.factor(long_tcr_by_treatment_timepoint$D0$orig.ident)), 'D0', 'EOT'))
-
-long_diversity_plot <- ggplot(long_diversity_by_individual_data,
-                              aes(y = as.numeric(value),
-                                  x = factor(disease_group, levels = c('cVL_HIV', 'cVL_HIV')),
-                                  fill = factor(treatment_timepoint, levels = c('D0', 'EOT')))) +
-  geom_boxplot() + facet_wrap(~variable, scales = 'free', ncol = 4) +
-  geom_jitter(position = position_dodge(width = 1)) +
-  #geom_text_repel(position = position_dodge(width = 0.75), aes(label = orig.ident), direction = 'y', size = 4.5) +
-  labs(x = 'Disease groups', y = 'Diversity metric') +
-  scale_fill_npg() + theme_bw() +
-  theme(axis.text.y = element_text(size = 18, family = text_font, color = 'black'),
-        axis.title.y = element_text(size = 20, family = text_font),
-        axis.text.x = element_text(color='black', size=18, angle = 30, vjust = 0.5, family=text_font),
-        axis.title.x = element_blank(),
-        legend.title = element_blank(),
-        legend.text = element_text(size = 18, family = text_font),
-        panel.grid.major.x = element_blank(),
-        panel.grid.major.y = element_line(color="#dadfe6", size=0.25),
-        strip.background = element_blank(),
-        strip.text = element_text(size = 20, family = text_font))
-
-# diversity_by_disease_group <- clonalDiversity(tcr_by_disease_group, cloneCall = 'gene+nt', chain = 'both', n.boots = 100, group = 'disease_group')
-# diversity_by_treatment_timepoint <- clonalDiversity(tcr_by_treatment_timepoint, cloneCall = 'gene+nt', chain = 'both', n.boots = 100, group = 'treatment_timepoint')
-
-##----------------------------------------------------------------
-##                        Repertoire space                       -
-##----------------------------------------------------------------
-
-#long_combined$dg_tt <- factor(paste0(long_combined$disease_group, '_', long_combined$treatment_timepoint), levels = c('pVL_HIV_D0', 'pVL_HIV_EOT', 'cVL_HIV_D0', 'cVL_HIV_EOT'))
-
-long_combined$dg_tt_patient <- factor(paste0(long_combined$disease_group, '_', long_combined$treatment_timepoint, '_', long_combined$orig.ident),
-                                      levels = c("pVL_HIV_D0_0114UV", "pVL_HIV_EOT_0114W4", "pVL_HIV_D0_0117M6", "pVL_HIV_EOT_0117W4", 
-                                                 "cVL_HIV_D0_0104UV", "cVL_HIV_EOT_0104W4", "cVL_HIV_D0_0170M6", "cVL_HIV_EOT_0170W4"))
-
-tcell_subset <- subset(long_combined, idents = c('CD8+ TEM', 'CD8+ TCM', 'CD4+ TCM', 'CD4+ TEM', 'CD8+ T Naive', 'CD4+ T Naive', 'CD8+ T Proliferating', 'CD4+ T Proliferating'))
-
-long_clonal_occupation <- occupiedscRepertoire(tcell_subset, proportion = T) + 
-  labs(y = 'Proportion') +
-  scale_fill_manual(values = colorblind_vector(5)) +
-  theme(axis.text.y = element_text(size = 18, family = text_font, color = 'black'),
-        axis.title.y = element_text(size = 20, family = text_font),
-        axis.text.x = element_text(color='black', size=18, angle = 90, vjust = 0.5, family=text_font),
-        axis.title.x = element_blank(),
-        legend.title = element_blank(),
-        legend.text = element_text(size = 18, family = text_font))
-
-
-##----------------------------------------------------------------
-##                          Gene usage                           -
-##----------------------------------------------------------------
-
-long_combined$dg_tt <- factor(paste0(long_combined$disease_group, '_', long_combined$treatment_timepoint),
-                              levels = c("pVL_HIV_D0", "pVL_HIV_EOT", "cVL_HIV_D0", "cVL_HIV_EOT"))
-
-long_TRA_V_gene_usage <- vizGenes(long_combined, gene = 'V', chain = 'TRA', plot = 'bar', separate = 'dg_tt', order = 'variance', errorbar = T)
-long_TRA_J_gene_usage <- vizGenes(long_combined, gene = 'J', chain = 'TRA', plot = 'bar', separate = 'dg_tt', order = 'variance', errorbar = T)
-long_TRB_V_gene_usage <- vizGenes(long_combined, gene = 'V', chain = 'TRB', plot = 'bar', separate = 'dg_tt', order = 'variance', errorbar = T)
-long_TRB_J_gene_usage <- vizGenes(long_combined, gene = 'J', chain = 'TRB', plot = 'bar', separate = 'dg_tt', order = 'variance', errorbar = T)
-
+# test_subset <- subset(long_combined, CTaa %in% c(NonChronic_alluvial_data$Clonotypes, Chronic_alluvial_data$Clonotypes))
+# Idents(test_subset) <- "disease_group"
+# test <- FindMarkers(test_subset, ident.1 = 'ncVL_HIV', ident.2 = 'cVL_HIV', group.by = 'disease_group', min.pct = 0.1, logfc.threshold = 0.25, only.pos = F) %>% mutate(gene = rownames(.), diff = pct.1 - pct.2)
+# test_enrichplot <- enrichment_plotter(list(test), c(14))
